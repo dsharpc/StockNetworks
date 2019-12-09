@@ -1,0 +1,21 @@
+version : '3'
+services:
+    db:
+        image: 'neo4j'
+        environment:
+            - NEO4J_AUTH=neo4j/pass123456
+
+        ports:
+            - '7474:7474'
+            - '7687:7687'
+        volumes:
+            - ./neo4j/data:/data
+            - ./neo4j/logs:/logs
+            - ./neo4j/import:/var/lib/neo4j/import
+            - ./neo4j/plugins:/plugins
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        volumes:
+            - ./app:/app
