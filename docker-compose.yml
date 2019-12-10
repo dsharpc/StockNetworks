@@ -4,7 +4,7 @@ services:
         image: 'neo4j'
         environment:
             - NEO4J_AUTH=neo4j/pass123456
-
+            - NEO4J_dbms_security_procedures_unrestricted=algo.*
         ports:
             - '7474:7474'
             - '7687:7687'
