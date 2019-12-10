@@ -19,3 +19,5 @@ services:
             dockerfile: Dockerfile
         volumes:
             - ./app:/app
+        env_file: 
+            - vars.env

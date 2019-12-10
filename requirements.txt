@@ -2,3 +2,4 @@ pandas
 numpy
 flask
 neo4j-driver
+s3fs
