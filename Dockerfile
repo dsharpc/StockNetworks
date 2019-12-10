@@ -18,3 +18,4 @@ ENV export LANG=C.UTF-8
 
 EXPOSE 8501
 #CMD [ "streamlit", "run", "./app.py" ]
+CMD "bash"
