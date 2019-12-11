@@ -3,3 +3,5 @@ numpy
 flask
 py2neo
 requests
+psycopg2
+sqlalchemy

@@ -3,6 +3,7 @@ FROM ubuntu:18.04
 RUN apt-get update
 RUN apt-get -y install python3-pip
 RUN apt-get -y install htop
+RUN apt-get -y install libpq-dev
 
 WORKDIR /app
 
