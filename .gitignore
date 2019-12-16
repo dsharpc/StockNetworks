@@ -6,10 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
-postgres/
+data/postgres/
 
-neo4j/*
-!neo4j/plugins
+data/neo4j/*
+!data/neo4j/plugins
 
 __pycache__
 .DS_Store

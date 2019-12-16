@@ -25,6 +25,7 @@ def match_stocks(num = 0):
     print("Reading full list from cloud")
     df = pd.read_csv(STOCK_LIST)
     
+    # Fetch number of companies to get
     if num == -1:
         df = df.sort_values(by='Company Market Cap (£m)', ascending=False)
     else:
@@ -44,13 +45,14 @@ def match_stocks(num = 0):
     df = df[~df['companyname'].isin(df_exist['companyname'])]
 
     print("Writing new stocks to db")
-    df.to_sql('companies', engine, if_exists='replace')
+    df.to_sql('companies', engine, if_exists='append')
+    print(df.shape)
     
     for _, row in df.iterrows():
         
         print(f'Fetching company {row["companyname"]}')
 
-        exists = engine.execute(f"SELECT * FROM symbols WHERE companyname == \'{row['companyname']}\'")
+        exists = engine.execute(f"SELECT * FROM symbols WHERE companyname = \'{row['companyname']}\'")
 
         if exists.rowcount == 0:
             time.sleep(13)
@@ -70,14 +72,9 @@ def match_stocks(num = 0):
         else:
             print('Stock already exists in db')
 
+def fetch_price(symbol):
+    """
+    Function which takes a company's symbol and fetches the price history for it. It writes the price history back to the database
+    """
 
-
-    # from py2neo import Graph, Node, NodeMatcher
-    # g = Graph(host='neodb',user = NEO4J_USER, password = NEO4J_PASS)
-    # matcher = NodeMatcher(g)
-    # tx = g.begin()
-    #  n = Node("Stock", symbol = symbol, company = row['Company Name'], industry = row['ICB Industry'], \
-    #         sub_sector = row['ICB Super-Sector'], country = row['Country of Incorporation'], market_cap = row['Company Market Cap (£m)'])
-    # tx.create(n)
-    # tx.commit()
-    # matcher.match("Stock", company=row['Company Name']).first()
+    

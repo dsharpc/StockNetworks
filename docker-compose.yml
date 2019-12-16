@@ -9,10 +9,10 @@ services:
             - '7474:7474'
             - '7687:7687'
         volumes:
-            - ./neo4j/data:/data
-            - ./neo4j/logs:/logs
-            - ./neo4j/import:/var/lib/neo4j/import
-            - ./neo4j/plugins:/plugins
+            - ./data/neo4j/data:/data
+            - ./data/neo4j/logs:/logs
+            - ./data/neo4j/import:/var/lib/neo4j/import
+            - ./data/neo4j/plugins:/plugins
     pgdb:
         image: 'postgres:latest'
         environment: 
@@ -22,7 +22,7 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - ./postgres:/var/lib/postgresql/data
+            - ./data/postgres:/var/lib/postgresql/data
     app:
         build:
             context: .
