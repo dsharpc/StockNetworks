@@ -6,6 +6,7 @@ from sqlalchemy.exc import ProgrammingError
 import time
 import psycopg2
 from utils import clean_columns
+import io
 
 VANTAGE_API_KEY = os.environ['VANTAGE_API_KEY']
 POSTGRES_USER = os.environ['POSTGRES_USER']
@@ -76,5 +77,19 @@ def fetch_price(symbol):
     """
     Function which takes a company's symbol and fetches the price history for it. It writes the price history back to the database
     """
-
+    print(f"Fetching stock with symbol: {symbol}")
+    time.sleep(13)
+    engine = create_engine(f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@pgdb:5432/{POSTGRES_DB}')
     
+    engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
+
+    df = pd.read_csv(f'https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol={symbol}&apikey={VANTAGE_API_KEY}&datatype=csv')
+    df['stock'] = symbol
+   
+    conn = engine.raw_connection()
+    cur = conn.cursor()
+    output = io.StringIO()
+    df.to_csv(output, sep='\t', header=False, index=False)
+    output.seek(0)
+    cur.copy_from(output, 'price', null="") # null values become ''
+    conn.commit()
