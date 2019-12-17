@@ -1,19 +1,17 @@
 import requests
 import pandas as pd
 import os
-from sqlalchemy import create_engine 
 from sqlalchemy.exc import ProgrammingError
 import time
 import psycopg2
-from utils import clean_columns
+from utils import clean_columns, get_pg_engine, read_table
 import io
 
 VANTAGE_API_KEY = os.environ['VANTAGE_API_KEY']
-POSTGRES_USER = os.environ['POSTGRES_USER']
-POSTGRES_PASSWORD = os.environ['POSTGRES_PASSWORD']
-POSTGRES_DB = os.environ['POSTGRES_DB']
 STOCK_LIST = os.environ['STOCK_LIST']
 
+
+# NEED TO SPLIT THIS FUNCTION INTO DOWNLOAD STOCKS AND THEN GET SYMBOLS, OTHERWISE, IT WON'T WORK ON A SECON RERUN
 def match_stocks(num = 0):
     """
     This function will match the top n stocks ordered by their market cap. 
@@ -32,22 +30,25 @@ def match_stocks(num = 0):
     else:
         df = df.sort_values(by='Company Market Cap (£m)', ascending=False).head(num)
 
-    engine = create_engine(f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@pgdb:5432/{POSTGRES_DB}')
-    
+    # Create table to store the symbols in
+    engine = get_pg_engine()
     engine.execute("CREATE TABLE IF NOT EXISTS symbols (companyname text, symbol text)")
     
     df = clean_columns(df)
     
-    try:
-        df_exist = pd.read_sql('SELECT companyname, market FROM companies', engine)
-    except ProgrammingError:
-        df_exist = {'companyname':[]}
+    # Fetch list of companies that are already in the database, if the table doesn't exist, then return an empty array
+    df_exist = read_table('companies')
 
+    if df_exist is None:
+        df_exist = {'companyname':[]}
+    # Of the total list, filter those that are already in the database
     df = df[~df['companyname'].isin(df_exist['companyname'])]
 
+    # Write new stocks
     print("Writing new stocks to db")
     df.to_sql('companies', engine, if_exists='append')
-    print(df.shape)
+
+    print(f"A total of {df.shape[0]} new stocks will be added to the database") 
     
     for _, row in df.iterrows():
         
@@ -55,15 +56,20 @@ def match_stocks(num = 0):
 
         exists = engine.execute(f"SELECT * FROM symbols WHERE companyname = \'{row['companyname']}\'")
 
+        # Check if we already have a symbol for the company 
         if exists.rowcount == 0:
-            time.sleep(13)
+            time.sleep(13)\
+            # For some reason, the Alpha Vantage API symbol search endpoint works better when you don't give the full company name
+            # I've arbitrarily given it the first 10 characters
             company_keywords = row['companyname'][:10]
             response = requests.get(f'https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords={company_keywords}&apikey={VANTAGE_API_KEY}')
             symbol = None
+            # It checks for the first symbol of a company that is in the UK
             for res in response.json()['bestMatches']:
                 if res["4. region"] == 'United Kingdom':
                     symbol = res['1. symbol']
                     break
+            # Write the symbol to the database. If not found, it will insert a 'None' value and we will have to manually fix that. 
             statement = f"INSERT INTO symbols (companyname, symbol) VALUES (\'{row['companyname']}\',\'{symbol}\')"
             engine.execute(statement)
             print("Inserted new symbol successfully")
@@ -79,13 +85,15 @@ def fetch_price(symbol):
     """
     print(f"Fetching stock with symbol: {symbol}")
     time.sleep(13)
-    engine = create_engine(f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@pgdb:5432/{POSTGRES_DB}')
+    engine = get_pg_engine()
     
+    # Check whether table for stock price already exists in the database, otherwise create it.
     engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
 
     df = pd.read_csv(f'https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol={symbol}&apikey={VANTAGE_API_KEY}&datatype=csv')
     df['stock'] = symbol
    
+    # Write the price data to the database
     conn = engine.raw_connection()
     cur = conn.cursor()
     output = io.StringIO()
