@@ -19,7 +19,6 @@ logging.basicConfig(level=logging.INFO,
                     ] )
 
 logger=logging.getLogger() 
-logger.setLevel(logging.DEBUG) 
 
 VANTAGE_API_KEY = os.environ['VANTAGE_API_KEY']
 STOCK_LIST = os.environ['STOCK_LIST']
