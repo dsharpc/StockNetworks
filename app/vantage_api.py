@@ -38,6 +38,7 @@ def download_stock_list():
     # Write new stocks
     logging.info("Writing new stocks to db")
     df = clean_columns(df)
+    df['companyname'] = df['companyname'].str.replace('\'','')
     df.to_sql('companies', engine, if_exists='replace')
     logging.info("Stock list inserted in database")
 
@@ -84,8 +85,8 @@ def get_symbols(num = 0):
             # Need to sleep for 13 seconds because api is limited to 5 API calls per minute
             time.sleep(13)
             # For some reason, the Alpha Vantage API symbol search endpoint works better when you don't give the full company name
-            # I've arbitrarily given it the first 10 characters
-            company_keywords = row['companyname'][:10]
+            # I've arbitrarily given it the first 15 characters
+            company_keywords = row['companyname'][:15]
             response = requests.get(f'https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords={company_keywords}&apikey={VANTAGE_API_KEY}')
             symbol = None
             # It checks for the first symbol of a company that is in the UK
