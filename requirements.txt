@@ -6,3 +6,4 @@ requests
 psycopg2
 sqlalchemy
 tqdm
+bs4
