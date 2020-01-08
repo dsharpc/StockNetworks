@@ -43,6 +43,7 @@ def download_stock_list():
 
 def get_symbols(num = 0):
     """
+    (FUNCTION DEPRECATED - NOW DONE BY LSE SCRAPER SCRIPT)
     This function will match the top n stocks ordered by their market cap, where these n stocks don't yet exist in the database.
     Its only argument is the number of stocks to match. This is default -1, which means all the stocks.
     It will also check if these stocks already exist inside the database to avoid making unnecesary API calls.
@@ -105,6 +106,7 @@ def get_symbols(num = 0):
 
 def symbol_match_status():
     """
+    (FUNCTION DEPRECATED - NOW DONE BY LSE SCRAPER SCRIPT)
     Function to verify how many companies are left to be matched with a symbol
     """
     logging.info("Calculating symbol match status")
@@ -140,6 +142,7 @@ def fetch_price(symbol):
 
 def manual_symbols():
     """
+    (FUNCTION DEPRECATED - NOW DONE BY LSE SCRAPER SCRIPT)
     Function which allows the user to manually input the missing symbols for the companies
     """
 
