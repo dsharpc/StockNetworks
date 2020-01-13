@@ -68,7 +68,7 @@ def get_symbols(use_scraperapi = True, full_refresh = False):
             url = 'https://www.londonstockexchange.com' + soup.find('div', class_='paging').find('p', class_='aligndx').find('a', title='Next')['href']
         except TypeError:
             url = None 
-            logging.info("Scraping finished successfully"")
+            logging.info("Scraping finished successfully")
 
         df = pd.DataFrame(states)
         df.set_index('symbol').to_sql('symbols', engine, if_exists='append')
