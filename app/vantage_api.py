@@ -11,6 +11,8 @@ from tqdm import tqdm
 from datetime import datetime
 import sys
 
+
+engine = get_pg_engine()
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s', 
                     handlers=[
@@ -31,7 +33,7 @@ def fetch_price(symbol):
     """
     Function which takes a company's symbol and fetches the price history for it. It writes the price history back to the database
     """
-    engine = get_pg_engine()
+
     # Check whether table for stock price already exists in the database, otherwise create it.
     engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
     engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text)")
