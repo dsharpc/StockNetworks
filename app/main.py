@@ -17,7 +17,7 @@ if __name__ == "__main__":
     if args.fetch_price:
         stocks = read_table('symbols')
         assert len(stocks) > 0, 'There are no records in the symbols table. Please match the symbols using the -gs flag first'
-        for sym in stocks['symbol']:
+        for sym in stocks['vantage_symbol']:
             try:
                 fetch_price(sym)
             except AssertionError as e:
