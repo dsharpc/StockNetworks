@@ -16,7 +16,7 @@ engine = get_pg_engine()
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s', 
                     handlers=[
-                        logging.FileHandler(f"vantage.log"),
+                        logging.FileHandler(f"logs/vantage.log"),
                         logging.StreamHandler(sys.stdout)
                     ] )
 
@@ -24,7 +24,7 @@ logger=logging.getLogger()
 
 VANTAGE_API_KEY = os.environ['VANTAGE_API_KEY']
 
-class RateLimitExceeded(Exception):
+class RateLimitExceededException(Exception):
     def __init__(self,msg=None):
         if msg is None:
             msg = "API Rate Limit Exceeded"
@@ -36,8 +36,8 @@ def fetch_price(symbol):
 
     # Check whether table for stock price already exists in the database, otherwise create it.
     engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
-    engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text)")
-    df_exist = pd.read_sql('SELECT distinct symbol from price', engine)
+    engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text, datetime date)")
+    df_exist = pd.read_sql('SELECT distinct symbol from (select symbol from price union select symbol from errors) o', engine)
 
     assert symbol not in df_exist['symbol'].tolist(), f'Price data already exists for this symbol {symbol}'
     assert symbol != 'None', 'Can\'t get a price'
@@ -49,11 +49,11 @@ def fetch_price(symbol):
     
     if 'Error' in df.iloc[0][0]:
         logging.info(f'Could not fetch price for {symbol}, value will be stored in the errors table for manual verification')
-        engine.execute(f"INSERT INTO errors (symbol, error) VALUES ('{symbol}', 'Not matched to VantageAPI')")
+        engine.execute(f"INSERT INTO errors (symbol, error, datetime) VALUES ('{symbol}', 'Not matched to VantageAPI', '{datetime.now().strftime('%d-%m-%Y')}')")
     elif 'Information' in df.iloc[0][0]:
         logging.info(f"Could not fetch price for {symbol} as call limit was exceeded")
         engine.execute(f"INSERT INTO errors (symbol, error) VALUES ('{symbol}', 'Rate limit exceeded')")
-        raise RateLimitExceeded
+        raise RateLimitExceededException
     else:
         # Write the price data to the database
         logging.info(f"Symbol {symbol} found, inserting price data to database")

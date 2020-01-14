@@ -1,4 +1,4 @@
-from vantage_api import fetch_price, RateLimitExceeded
+from vantage_api import fetch_price, RateLimitExceededException
 from lse_scraper import get_symbols
 from utils import get_pg_engine, read_table
 import argparse
@@ -23,6 +23,6 @@ if __name__ == "__main__":
             except AssertionError as e:
                 print(e)
                 pass
-            except RateLimitExceeded as e:
+            except RateLimitExceededException as e:
                 print(e)
                 break
