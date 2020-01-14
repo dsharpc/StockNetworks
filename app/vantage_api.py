@@ -37,7 +37,7 @@ def fetch_price(symbol):
     # Check whether table for stock price already exists in the database, otherwise create it.
     engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
     engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text)")
-    df_exist = pd.read_sql('SELECT * from price', engine)
+    df_exist = pd.read_sql('SELECT distinct symbol from price', engine)
 
     assert symbol not in df_exist['symbol'].tolist(), f'Price data already exists for this symbol {symbol}'
     assert symbol != 'None', 'Can\'t get a price'
