@@ -1,4 +1,4 @@
-from vantage_api import fetch_price, RateLimitExceededException
+from vantage_api import fetch_price, drop_existing, RateLimitExceededException
 from lse_scraper import get_symbols
 from utils import get_pg_engine, read_table
 import argparse
@@ -17,6 +17,7 @@ if __name__ == "__main__":
     if args.fetch_price:
         stocks = read_table('symbols')
         assert len(stocks) > 0, 'There are no records in the symbols table. Please match the symbols using the -gs flag first'
+        stocks = drop_existing(stocks)
         for sym in stocks['vantage_symbol']:
             try:
                 fetch_price(sym)

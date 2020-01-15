@@ -13,7 +13,7 @@ def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strf
     start_date_fmt = datetime.strptime(start_date, '%Y-%m-%d')
     end_date_fmt = datetime.strptime(end_date, '%Y-%m-%d')
     diff = end_date_fmt - start_date_fmt
-    assert int(diff.days/7) > 12, 'For more meaningful correlations increase the window between the start_date and end_date'
+    assert int(diff.days/7) > 12, 'For more meaningful correlations increase the window between the start_date and end_date (at least 12 weeks)'
 
     engine = get_pg_engine()
 
@@ -25,5 +25,8 @@ def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strf
                        group by symbol \
                        order by sum(volume) desc \
                        limit {num_stocks}', engine)
+
+    
        
+    
     

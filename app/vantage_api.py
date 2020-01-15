@@ -29,6 +29,14 @@ class RateLimitExceededException(Exception):
         if msg is None:
             msg = "API Rate Limit Exceeded"
 
+
+def drop_existing(df):
+    df = df.copy()
+    df_exist = pd.read_sql('SELECT distinct symbol from (select symbol from price union select symbol from errors) o', engine)
+    print(f"Removed {sum(df['vantage_symbol'].isin(df_exist['symbol']))} records which were already in the database")
+    df = df[~df['vantage_symbol'].isin(df_exist['symbol'])]
+    return df
+
 def fetch_price(symbol):
     """
     Function which takes a company's symbol and fetches the price history for it. It writes the price history back to the database
@@ -37,9 +45,7 @@ def fetch_price(symbol):
     # Check whether table for stock price already exists in the database, otherwise create it.
     engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
     engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text, datetime date)")
-    df_exist = pd.read_sql('SELECT distinct symbol from (select symbol from price union select symbol from errors) o', engine)
 
-    assert symbol not in df_exist['symbol'].tolist(), f'Price data already exists for this symbol {symbol}'
     assert symbol != 'None', 'Can\'t get a price'
     logging.info(f"Fetching stock with symbol: {symbol}")
     time.sleep(13)
