@@ -56,7 +56,7 @@ def fetch_price(symbol):
     
     if 'Error' in df.iloc[0][0]:
         logging.info(f'Could not fetch price for {symbol}, value will be stored in the errors table for manual verification')
-        engine.execute(f"INSERT INTO errors (symbol, error, datetime) VALUES ('{symbol}', 'Not matched to VantageAPI', '{datetime.now().strftime('%d-%m-%Y')}')")
+        engine.execute(f"INSERT INTO errors (symbol, error, datetime) VALUES ('{symbol}', 'Not matched to VantageAPI', '{datetime.now().strftime('%Y-%m-%d')}')")
     elif 'Information' in df.iloc[0][0]:
         logging.info(f"Could not fetch price for {symbol} as call limit was exceeded")
         engine.execute(f"INSERT INTO errors (symbol, error) VALUES ('{symbol}', 'Rate limit exceeded')")
