@@ -8,7 +8,7 @@ import pandas as pd
 def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):
     
 
-    assert num_stocks > 10, 'To build an interesting analysis, make sure the number of stocks to use is at least 10'
+    assert num_stocks > 20, 'To build an interesting analysis, make sure the number of stocks to use is at least 20'
 
     start_date_fmt = datetime.strptime(start_date, '%Y-%m-%d')
     end_date_fmt = datetime.strptime(end_date, '%Y-%m-%d')
@@ -26,7 +26,8 @@ def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strf
                        order by sum(volume) desc \
                        limit {num_stocks}', engine)
 
-    
+
+
        
     
     
