@@ -7,6 +7,7 @@ from sqlalchemy.exc import ProgrammingError
 POSTGRES_USER = os.environ['POSTGRES_USER']
 POSTGRES_PASSWORD = os.environ['POSTGRES_PASSWORD']
 POSTGRES_DB = os.environ['POSTGRES_DB']
+POSTGRES_HOST = os.environ['POSTGRES_HOST']
 
 def clean_columns(df):
     df = df.copy()
@@ -15,7 +16,7 @@ def clean_columns(df):
 
 
 def get_pg_engine():
-    engine = create_engine(f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@pgdb:5432/{POSTGRES_DB}')
+    engine = create_engine(f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:5432/{POSTGRES_DB}')
     return engine
 
 def read_table(table_name, limit = 0):
