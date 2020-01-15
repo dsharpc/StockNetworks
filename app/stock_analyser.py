@@ -21,13 +21,24 @@ def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strf
 
     stocks = pd.read_sql(f'select symbol, sum(volume) as volume \
                        from price \
-                       where timestamp between {start_date} and {end_date} \
+                       where timestamp between \'{start_date}\' and \'{end_date}\' \
                        group by symbol \
                        order by sum(volume) desc \
                        limit {num_stocks}', engine)
+    
+    relevant_stocks = ','.join([f"'{stock}'" for stock in stocks['symbol'].tolist()])
 
+    price_data = pd.read_sql(f"select timestamp, symbol, open as price\
+                            from price\
+                            where \"timestamp\" between \'{start_date}\' and \'{end_date}\'\
+                            and symbol in ({relevant_stocks})", engine)
 
+    price_data = price_data.pivot(index='timestamp', columns='symbol', values='price')
 
+    return price_data
+       
+
+       
        
     
     

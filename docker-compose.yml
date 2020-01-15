@@ -31,6 +31,8 @@ services:
             - ./app:/app
         env_file: 
             - vars.env
+        ports:
+            - "8888:8888"
         tty: True
         depends_on:
             - neodb
