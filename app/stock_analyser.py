@@ -1,11 +1,11 @@
 from datetime import datetime
 from utils import get_pg_engine
 import pandas as pd
+import numpy as np
 
 
 
-
-def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):
+def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):
     
 
     assert num_stocks > 20, 'To build an interesting analysis, make sure the number of stocks to use is at least 20'
@@ -34,8 +34,35 @@ def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strf
                             and symbol in ({relevant_stocks})", engine)
 
     price_data = price_data.pivot(index='timestamp', columns='symbol', values='price')
-
+    drop_stocks = price_data.isna().apply('mean').sort_values(ascending=False).reset_index()\
+    .rename(columns={0:'nas'}).query('nas > 0.65')
+    print(f"Will drop {len(drop_stocks)} stocks from the total list, dropping high missing values")
+    
+    price_data = price_data.loc[:,~price_data.columns.isin(drop_stocks['symbol'])]
+    
+    print(f"Now cleaning dates")
+    keep_dates = pd.Series(price_data.index).reset_index()\
+    .assign(dow = lambda df: pd.to_datetime(df['timestamp']).dt.day_name()).query('dow == "Friday"')
+    price_data = price_data.fillna(method='ffill')
+    price_data = price_data.loc[price_data.index.isin(keep_dates['timestamp'])]
+    
+    drop_stocks = price_data.isna().apply('mean').reset_index().rename(columns = {0:'nas'}).query('nas > 0.1')
+    print(f"Will additionally drop {len(drop_stocks)} due to high missingness at start of period")
+    if len(drop_stocks) >0:
+        price_data = price_data.loc[:,~price_data.columns.isin(drop_stocks['symbol'])]
+    
     return price_data
+
+
+
+def build_correlation(df):
+    print("Deduping pairings")
+    df_out = df.corr().reset_index().melt(id_vars='symbol', var_name='cor').query('symbol != cor')
+    df_out = df_out[pd.DataFrame(np.sort(df_out[['symbol','cor']].values,1)).duplicated().values]
+    df_out = df_out.rename(columns={'symbol':'symbol1', 'cor':'symbol2','value':'cor'})
+    return df_out
+
+
        
 
        
