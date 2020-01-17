@@ -8,3 +8,4 @@ sqlalchemy
 tqdm
 bs4
 jupyter
+matplotlib
