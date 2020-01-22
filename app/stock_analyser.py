@@ -60,6 +60,8 @@ def correlate(df):
     df_out = df.corr().reset_index().melt(id_vars='symbol', var_name='cor').query('symbol != cor')
     df_out = df_out[pd.DataFrame(np.sort(df_out[['symbol','cor']].values,1)).duplicated().values]
     df_out = df_out.rename(columns={'symbol':'symbol1', 'cor':'symbol2','value':'cor'})
+    df_out['symbol1'] = df_out['symbol1'].str.replace('.LON', '')
+    df_out['symbol2'] = df_out['symbol2'].str.replace('.LON', '')
     return df_out
 
 def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):
@@ -68,7 +70,7 @@ def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strf
     df = correlate(df)
     a_id = f"{start_date.replace('-','_')}_{end_date.replace('-','_')}_{num_stocks}"
     df['id'] = a_id
-    df.to_sql('correlations'+a_id, engine, if_exists='replace')
+    df.to_sql('correlations_'+a_id, engine, if_exists='replace')
        
 
        

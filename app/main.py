@@ -53,7 +53,7 @@ if __name__ == "__main__":
                 break
     
     if args.action == 'cor':
-        build_correlations()
+        build_correlations(parser_corr.start_date, parser_corr.end_date, parser_corr.number_stocks)
 
 
     
