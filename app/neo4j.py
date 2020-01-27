@@ -36,3 +36,7 @@ class NeoGraph:
             cypher = f"MATCH (s1:Symbol {{name:\'{x['symbol1']}\'}}),(s2:Symbol {{name:\'{x['symbol2']}\'}}) CREATE (s1)-[:CORR {{corr : {x['cor']}, id : '{x['id']}'}}]->(s2)"
             self.g.run(cypher)
         print("-----Relationship creation process complete -----")
+
+
+
+

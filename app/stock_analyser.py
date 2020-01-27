@@ -51,6 +51,7 @@ def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strfti
     if len(drop_stocks) >0:
         price_data = price_data.loc[:,~price_data.columns.isin(drop_stocks['symbol'])]
     
+    price_data.to_sql('clean_data_example', engine)
     return price_data
 
 
@@ -70,6 +71,7 @@ def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strf
     df = correlate(df)
     a_id = f"{start_date.replace('-','_')}_{end_date.replace('-','_')}_{num_stocks}"
     df['id'] = a_id
+    
     df.to_sql('correlations_'+a_id, engine, if_exists='replace')
        
 
