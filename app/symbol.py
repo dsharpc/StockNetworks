@@ -32,3 +32,21 @@ def get_symbols(exchange = 'LON',full_refresh = False):
         df.set_index('symbol').to_sql('symbols', engine, if_exists='append')
     else:
         logger.info(f"API call not successful, error: {response.text}")
+
+
+def get_nonexisting(shuffle = True, types=['cs']):
+    engine = get_pg_engine()
+    engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
+    engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text, datetime date)")
+    query = f"""
+    with existing as (
+    SELECT distinct symbol from (select symbol from price union select symbol from errors) o
+    )
+    select symbol from symbols where symbol not in (select * from existing) and type in ({','.join([f"'{t}'" for t in types])})
+    """
+    df = pd.read_sql(query, engine)
+    if shuffle:
+        res = df.sample(frac=1)['symbol'].tolist()
+    else:
+        res = df.sample(frac=1)['symbol'].tolist()
+    return res

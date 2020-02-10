@@ -23,12 +23,10 @@ logging.basicConfig(level=logging.INFO,
 logger=logging.getLogger() 
 
 
-def get_existing():
-    engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
-    engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text, datetime date)")
-    df_exist = pd.read_sql('SELECT distinct symbol from (select symbol from price union select symbol from errors) o', engine)
-    res = df_exist['symbol'].tolist()
-    return res
+class RateLimitExceededException(Exception):
+    def __init__(self,msg=None):
+        if msg is None:
+            msg = "API Rate Limit Exceeded"
 
 def fetch_price(symbol):
     """
@@ -44,8 +42,11 @@ def fetch_price(symbol):
     logging.info(f"Fetching stock with symbol: {symbol}")
 
     response = requests.get(f"{os.getenv('IEX_ROOT')}/stable/stock/{symbol}/chart/3m?token={os.getenv('IEX_TOKEN')}&chartCloseOnly=true")
-    
+
     if not response.ok:
+        if response.status_code == 402:
+            logging.info('API Requests limit exceeded')
+            raise RateLimitExceededException
         logging.info(f'Could not fetch price for {symbol}, value will be stored in the errors table for manual verification')
         engine.execute(f"INSERT INTO errors (symbol, error, datetime) VALUES ('{symbol}', '{response.status_code}', '{datetime.now().strftime('%Y-%m-%d')}')")
 
