@@ -2,7 +2,7 @@ from datetime import datetime
 from utils import get_pg_engine
 import pandas as pd
 import numpy as np
-
+import pdb
 
 
 def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):
@@ -17,8 +17,6 @@ def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strfti
 
     engine = get_pg_engine()
 
-    engine.execute("CREATE TABLE IF NOT EXISTS correlations (window_id text, start_date date, end_date date, symbol_a text, symbol_b text, correlation double precision)")
-
     stocks = pd.read_sql(f'select symbol, sum(volume) as volume \
                        from price \
                        where timestamp between \'{start_date}\' and \'{end_date}\' \
@@ -28,7 +26,7 @@ def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strfti
     
     relevant_stocks = ','.join([f"'{stock}'" for stock in stocks['symbol'].tolist()])
 
-    price_data = pd.read_sql(f"select timestamp, symbol, open as price\
+    price_data = pd.read_sql(f"select timestamp, symbol, close as price\
                             from price\
                             where \"timestamp\" between \'{start_date}\' and \'{end_date}\'\
                             and symbol in ({relevant_stocks})", engine)
@@ -41,17 +39,12 @@ def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strfti
     price_data = price_data.loc[:,~price_data.columns.isin(drop_stocks['symbol'])]
     
     print(f"Now cleaning dates")
-    keep_dates = pd.Series(price_data.index).reset_index()\
-    .assign(dow = lambda df: pd.to_datetime(df['timestamp']).dt.day_name()).query('dow == "Friday"')
     price_data = price_data.fillna(method='ffill')
-    price_data = price_data.loc[price_data.index.isin(keep_dates['timestamp'])]
     
     drop_stocks = price_data.isna().apply('mean').reset_index().rename(columns = {0:'nas'}).query('nas > 0.1')
     print(f"Will additionally drop {len(drop_stocks)} due to high missingness at start of period")
     if len(drop_stocks) >0:
         price_data = price_data.loc[:,~price_data.columns.isin(drop_stocks['symbol'])]
-    
-    price_data.to_sql('clean_data_example', engine)
     return price_data
 
 
@@ -61,8 +54,6 @@ def correlate(df):
     df_out = df.corr().reset_index().melt(id_vars='symbol', var_name='cor').query('symbol != cor')
     df_out = df_out[pd.DataFrame(np.sort(df_out[['symbol','cor']].values,1)).duplicated().values]
     df_out = df_out.rename(columns={'symbol':'symbol1', 'cor':'symbol2','value':'cor'})
-    df_out['symbol1'] = df_out['symbol1'].str.replace('.LON', '')
-    df_out['symbol2'] = df_out['symbol2'].str.replace('.LON', '')
     return df_out
 
 def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):

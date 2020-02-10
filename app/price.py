@@ -16,54 +16,45 @@ engine = get_pg_engine()
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s', 
                     handlers=[
-                        logging.FileHandler(f"logs/vantage.log"),
+                        logging.FileHandler(f"logs/price.log"),
                         logging.StreamHandler(sys.stdout)
                     ] )
 
 logger=logging.getLogger() 
 
-VANTAGE_API_KEY = os.environ['VANTAGE_API_KEY']
 
-class RateLimitExceededException(Exception):
-    def __init__(self,msg=None):
-        if msg is None:
-            msg = "API Rate Limit Exceeded"
-
-
-def drop_existing(df):
-    df = df.copy()
+def get_existing():
     engine.execute("CREATE TABLE IF NOT EXISTS price (timestamp date, open double precision,high double precision, low double precision, close double precision, volume double precision, symbol text)")
     engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text, datetime date)")
     df_exist = pd.read_sql('SELECT distinct symbol from (select symbol from price union select symbol from errors) o', engine)
-    print(f"Skipping {sum(df['vantage_symbol'].isin(df_exist['symbol']))} records which were already in the database")
-    df = df[~df['vantage_symbol'].isin(df_exist['symbol'])]
-    return df
+    res = df_exist['symbol'].tolist()
+    return res
 
 def fetch_price(symbol):
     """
     Function which takes a company's symbol and fetches the price history for it. It writes the price history back to the database
     """
+    engine.execute("CREATE TABLE IF NOT EXISTS \
+        price (timestamp date, close double precision, volume double precision, \
+            change double precision, change_percent double precision, change_over_time double precision, symbol text)")
+    engine.execute("CREATE TABLE IF NOT EXISTS errors (symbol text, error text, datetime date)")
 
     # Check whether table for stock price already exists in the database, otherwise create it.
-
-
     assert symbol != 'None', 'Can\'t get a price'
     logging.info(f"Fetching stock with symbol: {symbol}")
-    time.sleep(13)
 
-    df = pd.read_csv(f'https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol={symbol}&apikey={VANTAGE_API_KEY}&datatype=csv')
-    df['stock'] = symbol
+    response = requests.get(f"{os.getenv('IEX_ROOT')}/stable/stock/{symbol}/chart/3m?token={os.getenv('IEX_TOKEN')}&chartCloseOnly=true")
     
-    if 'Error' in df.iloc[0][0]:
+    if not response.ok:
         logging.info(f'Could not fetch price for {symbol}, value will be stored in the errors table for manual verification')
-        engine.execute(f"INSERT INTO errors (symbol, error, datetime) VALUES ('{symbol}', 'Not matched to VantageAPI', '{datetime.now().strftime('%Y-%m-%d')}')")
-    elif 'Information' in df.iloc[0][0]:
-        logging.info(f"Could not fetch price for {symbol} as call limit was exceeded")
-        engine.execute(f"INSERT INTO errors (symbol, error) VALUES ('{symbol}', 'Rate limit exceeded')")
-        raise RateLimitExceededException
+        engine.execute(f"INSERT INTO errors (symbol, error, datetime) VALUES ('{symbol}', '{response.status_code}', '{datetime.now().strftime('%Y-%m-%d')}')")
+
     else:
+        df = pd.DataFrame.from_dict(response.json())
+        df['symbol'] = symbol
+
         # Write the price data to the database
-        logging.info(f"Symbol {symbol} found, inserting price data to database")
+        logging.info(f"Symbol {symbol} found, used {response.headers.get('iexcloud-messages-used')}\n inserting price data to database")
         conn = engine.raw_connection()
         cur = conn.cursor()
         output = io.StringIO()
