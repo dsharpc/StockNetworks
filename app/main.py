@@ -1,62 +1,53 @@
-from vantage_api import fetch_price, drop_existing, RateLimitExceededException
-from lse_scraper import get_symbols
-from stock_analyser import build_correlations
+from price import fetch_price
+from symbol import get_symbols, get_nonexisting
+from correlations import build_correlations
 from utils import get_pg_engine, read_table
 import argparse
+from tqdm import tqdm
+from datetime import datetime
+
+def symbols(namespace):
+    get_symbols()
+
+def prices(namespace):
+    ne = get_nonexisting()
+    if namespace.stock != '*':
+        fetch_price(namespace.stock)
+    else:
+        for s in tqdm(ne):
+            fetch_price(s)
+
+def correlate(namespace):
+    build_correlations(namespace.start_date, namespace.end_date, namespace.num_stocks)
+
+
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process Alpha Vantage API stocks')
-
-
-    # parser.add_argument('-a',
-    #                     choices = ['gs','f','cor'],
-    #                     dest='action',
-    #                     required=True,
-    #                     action='store',
-    #                     help=help_text)
+    parser = argparse.ArgumentParser(description='Stock exploration using Graph Networks')
 
     subparsers = parser.add_subparsers(help='Action type to perform')
 
-    parser_gs = subparsers.add_parser('gs', help = "'gs' for getting Symbols by scraping the London Stock Exchange website")
-    parser_f = subparsers.add_parser('f', help = "'f' for fetching prices from the Alpha Vantage API")
+    parser_gs = subparsers.add_parser('gs', help = "'gs' for getting Symbols from the API")
+    parser_gs.set_defaults(func=symbols)
+
+    parser_f = subparsers.add_parser('p', help = "'p' for fetching prices from the API")
+    parser_f.add_argument('-s','--stock', default='*', help='Stock symbol to fetch, if not given, it will pull price for all stocks')
+    parser_f.set_defaults(func=prices)
 
 
     help_text="""
                 + 'cor' for calculating the pairwise correlations between the stocks, this command has 3 arguments:\n
-                    \t+ '-sd' : start date for price data
+                    \t+ '-sd' : start date for price data (YYYY-MM-DD)
                     \t+ '-ed' : end data for price data
                     \t+ '-ns' : number of stocks to correlate (these are ordered by transaction volume over the previous period)
               """
     parser_corr = subparsers.add_parser('cor', help = help_text)
-    # parser_corr.add_argument('-sd', '--start_date', default='2019-01-01')
-    # parser_corr.add_argument('-ed', '--end_date',default='2020-01-01')
-    # parser_corr.add_argument('-ns', '--number_stocks',type=int, default=1000)
+    parser_corr.add_argument('-sd','--start-date', default = '2019-11-01', help='Format is YYYY-MM-DD')
+    parser_corr.add_argument('-ed','--end-date', default = datetime.now().strftime('%Y-%m-%d'),help='Format is YYYY-MM-DD')
+    parser_corr.add_argument('-ns','--num-stocks', default = 1000, type=int)
+    parser_corr.set_defaults(func=correlate)
 
     args = parser.parse_args()
-    args_corr= parser_corr.parse_args()
-    print(args)
-    print(args_corr)
-
-    # if args.action == 'gs':
-    #     get_symbols()
-
-    # if args.action == 'f':
-    #     stocks = read_table('symbols')
-    #     assert len(stocks) > 0, 'There are no records in the symbols table. Please match the symbols using the gs flag first'
-    #     stocks = drop_existing(stocks)
-    #     for sym in stocks['vantage_symbol']:
-    #         try:
-    #             fetch_price(sym)
-    #         except AssertionError as e:
-    #             print(e)
-    #             pass
-    #         except RateLimitExceededException as e:
-    #             print(e)
-    #             break
-    
-    # if args.action == 'cor':
-    #     build_correlations(parser_corr.start_date, parser_corr.end_date, parser_corr.number_stocks)
-
-
+    args.func(args)
     
