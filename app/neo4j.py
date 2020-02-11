@@ -24,7 +24,7 @@ class NeoGraph:
         tx = self.g.begin()
         for _, x in tqdm(df.iterrows(), total = len(df)):
             if x['symbol'] != "NA":
-                n = Node("Symbol", name = x['symbol'], company = x['company'])
+                n = Node("Symbol", name = x['symbol'], company = x['name'])
             tx.create(n)
         tx.commit()
         self.g.run("CREATE INDEX ON :Symbol(name)")

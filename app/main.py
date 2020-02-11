@@ -1,6 +1,7 @@
 from price import fetch_price
 from symbol import get_symbols, get_nonexisting
 from correlations import build_correlations
+from neo4j import NeoGraph
 from utils import get_pg_engine, read_table
 import argparse
 from tqdm import tqdm
@@ -21,6 +22,16 @@ def correlate(namespace):
     build_correlations(namespace.start_date, namespace.end_date, namespace.num_stocks)
 
 
+def to_neo(namespace):
+    ng = NeoGraph()
+    if not namespace.dont_truncate:
+        ng.truncate()
+    symbols = read_table('symbols')
+    cor = read_table(namespace.corr_id)
+    cor = cor.query('cor == cor')
+    symbols = symbols[(symbols['symbol'].isin(cor['symbol1'])) | (symbols['symbol'].isin(cor['symbol2']))]
+    ng.add_companies(symbols)
+    ng.create_links(cor)
 
 
 if __name__ == "__main__":
@@ -47,6 +58,11 @@ if __name__ == "__main__":
     parser_corr.add_argument('-ed','--end-date', default = datetime.now().strftime('%Y-%m-%d'),help='Format is YYYY-MM-DD')
     parser_corr.add_argument('-ns','--num-stocks', default = 1000, type=int)
     parser_corr.set_defaults(func=correlate)
+
+    parser_neo = subparsers.add_parser('neo', help = 'Add stock data to Neo4j database')
+    parser_neo.add_argument('-dt','--dont-truncate', action='store_true')
+    parser_neo.add_argument('-c','--corr-id', default = 'correlations_2019_11_01_2020_02_11_1000', help='Name of the correlation table to use')
+    parser_neo.set_defaults(func=to_neo)
 
     args = parser.parse_args()
     args.func(args)
