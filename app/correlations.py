@@ -2,8 +2,6 @@ from datetime import datetime
 from utils import get_pg_engine
 import pandas as pd
 import numpy as np
-import pdb
-
 
 def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):
     
@@ -30,6 +28,14 @@ def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strfti
                             from price\
                             where \"timestamp\" between \'{start_date}\' and \'{end_date}\'\
                             and symbol in ({relevant_stocks})", engine)
+    
+    # Calculating coefficient of variation to keep only stocks with more price movement
+    stdevs = price_data.groupby('symbol')['price'].apply(lambda x: np.std(x)/x.mean()).to_frame().rename(columns={'price':'var_coef'})
+    keep = stdevs[(stdevs<stdevs.quantile(0.95)) & (stdevs>stdevs.quantile(0.05))].index
+    print(f"Dropping stocks with very high or very low coefficients of variation\n\
+        Keeping {len(keep)} out of {len(price_data['symbol'].unique())}")
+    
+    price_data = price_data[price_data['symbol'].isin(keep)]
 
     price_data = price_data.pivot(index='timestamp', columns='symbol', values='price')
     drop_stocks = price_data.isna().apply('mean').sort_values(ascending=False).reset_index()\
@@ -45,7 +51,8 @@ def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strfti
     print(f"Will additionally drop {len(drop_stocks)} due to high missingness at start of period")
     if len(drop_stocks) >0:
         price_data = price_data.loc[:,~price_data.columns.isin(drop_stocks['symbol'])]
-    return price_data
+
+    return price_data, stdevs
 
 
 
@@ -58,12 +65,13 @@ def correlate(df):
 
 def build_correlations(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):
     engine = get_pg_engine()
-    df =  clean_and_format(start_date, end_date, num_stocks)
+    df, stdevs =  clean_and_format(start_date, end_date, num_stocks)
     df = correlate(df)
     a_id = f"{start_date.replace('-','_')}_{end_date.replace('-','_')}_{num_stocks}"
     df['id'] = a_id
     
     df.to_sql('correlations_'+a_id, engine, if_exists='replace')
+    stdevs.to_sql('coef_variation', engine, if_exists='replace')
        
 
        

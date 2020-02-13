@@ -27,9 +27,11 @@ def to_neo(namespace):
     if not namespace.dont_truncate:
         ng.truncate()
     symbols = read_table('symbols')
+    var_coef = read_table('coef_variation')
     cor = read_table(namespace.corr_id)
     cor = cor.query('cor == cor')
     symbols = symbols[(symbols['symbol'].isin(cor['symbol1'])) | (symbols['symbol'].isin(cor['symbol2']))]
+    symbols = symbols.merge(var_coef,on='symbol', how='left')
     ng.add_companies(symbols)
     ng.create_links(cor)
 
