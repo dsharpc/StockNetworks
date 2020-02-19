@@ -2,8 +2,9 @@ from datetime import datetime
 from utils import get_pg_engine
 import pandas as pd
 import numpy as np
+import pdb
 
-def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000):
+def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strftime('%Y-%m-%d'), num_stocks = 1000, use_pct_change=True):
     
 
     assert num_stocks > 20, 'To build an interesting analysis, make sure the number of stocks to use is at least 20'
@@ -51,6 +52,15 @@ def clean_and_format(start_date = '2019-01-01', end_date = datetime.now().strfti
     print(f"Will additionally drop {len(drop_stocks)} due to high missingness at start of period")
     if len(drop_stocks) >0:
         price_data = price_data.loc[:,~price_data.columns.isin(drop_stocks['symbol'])]
+
+    # Drop dates with high percentage og missing values
+    drop_dates = price_data.isna().apply('mean', axis=1).to_frame().assign(drop = lambda df: df[0] > 0).query('drop').index
+    price_data = price_data[~price_data.index.isin(drop_dates)]
+
+
+    if use_pct_change:
+        price_data = price_data.pct_change(fill_method='ffill')
+        price_data = price_data.iloc[1:]
 
     return price_data, stdevs
 
