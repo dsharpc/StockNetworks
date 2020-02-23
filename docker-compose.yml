@@ -1,7 +1,7 @@
 version : '3'
 services:
     neodb:
-        image: 'neo4j'
+        image: 'neo4j:3.5'
         environment:
             - NEO4J_AUTH=neo4j/pass123456
             - NEO4J_dbms_security_procedures_unrestricted=algo.*
