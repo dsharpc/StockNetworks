@@ -8,7 +8,7 @@ from tqdm import tqdm
 from datetime import datetime
 
 def symbols(namespace):
-    get_symbols()
+    get_symbols(namespace.exchange)
 
 def prices(namespace):
     ne = get_nonexisting()
@@ -42,6 +42,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='Action type to perform')
 
     parser_gs = subparsers.add_parser('gs', help = "'gs' for getting Symbols from the API")
+    parser_gs.add_argument('-e','--exchange', help="Stock Exchange identifier, by default it's LON for London Stock Exchange")
     parser_gs.set_defaults(func=symbols)
 
     parser_f = subparsers.add_parser('p', help = "'p' for fetching prices from the API")
